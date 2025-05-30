@@ -16,7 +16,7 @@ import Interviews from "./pages/Interviews";
 import Employees from "./pages/Employees";
 import Settings from "./pages/Settings";
 import PublicJobApplication from "./pages/PublicJobApplication";
-import Layout from "./components/Layout";
+import RecruitmentLayout from "./components/RecruitmentLayout";
 
 const queryClient = new QueryClient();
 
@@ -37,55 +37,60 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/vaga/:jobId/inscricao" element={<PublicJobApplication />} />
+            
+            {/* Módulo Recrutamento - Rotas Protegidas */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Dashboard />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/vagas" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Jobs />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/candidatos" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Candidates />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/pipeline" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Pipeline />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/entrevistas" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Interviews />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
+            
+            {/* Outras rotas (fora do módulo de recrutamento) */}
             <Route path="/colaboradores" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Employees />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/configuracoes" element={
               <ProtectedRoute>
-                <Layout>
+                <RecruitmentLayout>
                   <Settings />
-                </Layout>
+                </RecruitmentLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </BrowserRouter>

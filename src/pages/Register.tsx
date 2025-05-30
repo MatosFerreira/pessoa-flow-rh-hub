@@ -44,7 +44,7 @@ const Register = () => {
           title: "Conta criada com sucesso!",
           description: "Bem-vindo à Plataforma Pessoas",
         });
-        navigate('/');
+        navigate('/dashboard');
       } else {
         toast({
           title: "Erro no cadastro",
