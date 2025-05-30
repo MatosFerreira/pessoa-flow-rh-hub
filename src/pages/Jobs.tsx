@@ -19,7 +19,8 @@ import {
   Edit,
   Eye,
   Share,
-  MoreHorizontal
+  MoreHorizontal,
+  Briefcase
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 

@@ -26,7 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
 
   const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Vagas', href: '/vagas', icon: Briefcase },
     { name: 'Candidatos', href: '/candidatos', icon: Users },
     { name: 'Pipeline', href: '/pipeline', icon: GitBranch },
@@ -36,18 +36,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-brand-light flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
+      <div className="w-64 bg-white shadow-xl border-r border-gray-100 flex flex-col">
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-100">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Plataforma</h1>
-              <p className="text-sm text-blue-600 font-medium">Pessoas</p>
+              <p className="text-sm text-primary font-medium">Pessoas</p>
             </div>
           </div>
         </div>
@@ -61,10 +61,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02]",
                   isActive
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-primary text-white shadow-lg"
+                    : "text-gray-600 hover:bg-primary/10 hover:text-primary"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -75,8 +75,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
 
         {/* Company Info */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+        <div className="p-4 border-t border-gray-100">
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
             <Building2 className="h-5 w-5 text-gray-500" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
@@ -95,10 +95,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <header className="bg-white shadow-sm border-b border-gray-100 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900">
                 {navItems.find(item => item.href === location.pathname)?.name || 'Dashboard'}
               </h2>
             </div>
@@ -106,8 +106,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarFallback className="bg-blue-100 text-blue-700">
+                <Avatar className="ring-2 ring-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary font-medium">
                     {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -121,7 +121,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 variant="ghost" 
                 size="sm"
                 onClick={logout}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -130,8 +130,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
-          {children}
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </div>
