@@ -22,7 +22,8 @@ import {
   DollarSign,
   Clock,
   Share2,
-  MoreHorizontal
+  MoreHorizontal,
+  Briefcase
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
