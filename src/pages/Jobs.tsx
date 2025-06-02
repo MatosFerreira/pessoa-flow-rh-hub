@@ -23,114 +23,42 @@ import {
   Clock,
   Share2,
   MoreHorizontal,
-  Briefcase
+  Briefcase,
+  Loader2
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-
-interface Job {
-  id: string;
-  title: string;
-  department: string;
-  location: string;
-  type: 'CLT' | 'PJ' | 'Estágio' | 'Temporário';
-  salary: string;
-  status: 'Ativa' | 'Pausada' | 'Encerrada' | 'Rascunho';
-  applications: number;
-  createdDate: string;
-  description: string;
-  requirements: string;
-  benefits: string;
-  manager: string;
-}
+import { useJobs, useCreateJob, useUpdateJob, useDeleteJob } from '@/hooks/useJobs';
+import { useDepartments } from '@/hooks/useDepartments';
+import { JobInsert } from '@/services/jobs';
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isNewJobDialogOpen, setIsNewJobDialogOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
-  const [newJob, setNewJob] = useState({
-    title: '',
-    department: '',
-    location: '',
-    type: 'CLT' as const,
-    salary: '',
-    description: '',
-    requirements: '',
-    benefits: '',
-    manager: ''
+  const { data: jobs = [], isLoading, error } = useJobs();
+  const { data: departments = [] } = useDepartments();
+  const createJobMutation = useCreateJob();
+  const updateJobMutation = useUpdateJob();
+  const deleteJobMutation = useDeleteJob();
+
+  const [newJob, setNewJob] = useState<Omit<JobInsert, 'empresa_id'>>({
+    titulo: '',
+    descricao: '',
+    requisitos: '',
+    local: '',
+    salario: '',
+    beneficios: '',
+    tipo_contratacao: 'CLT',
+    status: 'Rascunho',
+    departamento_id: null,
+    gestor_id: null,
   });
 
-  const jobs: Job[] = [
-    {
-      id: '1',
-      title: 'Desenvolvedor React Senior',
-      department: 'Tecnologia',
-      location: 'São Paulo, SP',
-      type: 'CLT',
-      salary: 'R$ 8.000 - R$ 12.000',
-      status: 'Ativa',
-      applications: 45,
-      createdDate: '2024-01-15',
-      description: 'Procuramos um desenvolvedor React experiente para liderar projetos inovadores.',
-      requirements: 'React, TypeScript, Node.js, 5+ anos de experiência',
-      benefits: 'Vale refeição, plano de saúde, home office',
-      manager: 'João Silva'
-    },
-    {
-      id: '2',
-      title: 'Analista de Marketing Digital',
-      department: 'Marketing',
-      location: 'Rio de Janeiro, RJ',
-      type: 'CLT',
-      salary: 'R$ 4.500 - R$ 6.500',
-      status: 'Ativa',
-      applications: 28,
-      createdDate: '2024-01-18',
-      description: 'Responsável por estratégias de marketing digital e campanhas online.',
-      requirements: 'Google Ads, Facebook Ads, Analytics, 3+ anos',
-      benefits: 'Vale transporte, gympass, flexibilidade',
-      manager: 'Maria Santos'
-    },
-    {
-      id: '3',
-      title: 'Assistente Administrativo',
-      department: 'Administrativo',
-      location: 'Belo Horizonte, MG',
-      type: 'CLT',
-      salary: 'R$ 2.500 - R$ 3.500',
-      status: 'Pausada',
-      applications: 67,
-      createdDate: '2024-01-10',
-      description: 'Apoio administrativo geral e atendimento ao cliente.',
-      requirements: 'Ensino médio, pacote Office, comunicação',
-      benefits: 'Vale refeição, vale transporte',
-      manager: 'Pedro Costa'
-    },
-    {
-      id: '4',
-      title: 'Designer UX/UI',
-      department: 'Design',
-      location: 'Remoto',
-      type: 'PJ',
-      salary: 'R$ 6.000 - R$ 9.000',
-      status: 'Rascunho',
-      applications: 0,
-      createdDate: '2024-01-22',
-      description: 'Criação de interfaces e experiências digitais excepcionais.',
-      requirements: 'Figma, Adobe XD, portfólio, 4+ anos',
-      benefits: 'Projeto remoto, horário flexível',
-      manager: 'Ana Oliveira'
-    }
-  ];
-
-  const departments = ['Tecnologia', 'Marketing', 'Administrativo', 'Design', 'Vendas', 'Financeiro'];
-
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.department.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = !selectedDepartment || job.department === selectedDepartment;
+    const matchesSearch = job.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (job.departamentos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = !selectedDepartment || job.departamento_id === selectedDepartment;
     const matchesStatus = !selectedStatus || job.status === selectedStatus;
     
     return matchesSearch && matchesDepartment && matchesStatus;
@@ -146,37 +74,57 @@ const Jobs = () => {
     }
   };
 
-  const handleCreateJob = () => {
-    // Simular criação de vaga
-    console.log('Nova vaga:', newJob);
-    setIsNewJobDialogOpen(false);
-    setNewJob({
-      title: '',
-      department: '',
-      location: '',
-      type: 'CLT',
-      salary: '',
-      description: '',
-      requirements: '',
-      benefits: '',
-      manager: ''
-    });
-    
-    toast({
-      title: "Vaga criada com sucesso!",
-      description: `A vaga "${newJob.title}" foi criada e está ativa.`,
-    });
+  const handleCreateJob = async () => {
+    if (!newJob.titulo || !newJob.descricao) {
+      return;
+    }
+
+    try {
+      await createJobMutation.mutateAsync(newJob);
+      setIsNewJobDialogOpen(false);
+      setNewJob({
+        titulo: '',
+        descricao: '',
+        requisitos: '',
+        local: '',
+        salario: '',
+        beneficios: '',
+        tipo_contratacao: 'CLT',
+        status: 'Rascunho',
+        departamento_id: null,
+        gestor_id: null,
+      });
+    } catch (error) {
+      console.error('Erro ao criar vaga:', error);
+    }
   };
 
   const handleShareJob = (jobTitle: string) => {
     const url = `${window.location.origin}/vaga/${encodeURIComponent(jobTitle)}/inscricao`;
     navigator.clipboard.writeText(url);
-    
-    toast({
-      title: "Link copiado!",
-      description: "O link da vaga foi copiado para a área de transferência.",
-    });
   };
+
+  const handleDeleteJob = async (jobId: string) => {
+    if (confirm('Tem certeza que deseja excluir esta vaga?')) {
+      await deleteJobMutation.mutateAsync(jobId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">Erro ao carregar vagas. Tente novamente.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -214,20 +162,23 @@ const Jobs = () => {
                   <Input
                     id="title"
                     placeholder="Ex: Desenvolvedor React Senior"
-                    value={newJob.title}
-                    onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+                    value={newJob.titulo}
+                    onChange={(e) => setNewJob({...newJob, titulo: e.target.value})}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Departamento *</Label>
-                  <Select value={newJob.department} onValueChange={(value) => setNewJob({...newJob, department: value})}>
+                  <Label htmlFor="department">Departamento</Label>
+                  <Select 
+                    value={newJob.departamento_id || ''} 
+                    onValueChange={(value) => setNewJob({...newJob, departamento_id: value || null})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o departamento" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -238,14 +189,17 @@ const Jobs = () => {
                   <Input
                     id="location"
                     placeholder="Ex: São Paulo, SP ou Remoto"
-                    value={newJob.location}
-                    onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                    value={newJob.local || ''}
+                    onChange={(e) => setNewJob({...newJob, local: e.target.value})}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="type">Tipo de Contrato</Label>
-                  <Select value={newJob.type} onValueChange={(value: any) => setNewJob({...newJob, type: value})}>
+                  <Select 
+                    value={newJob.tipo_contratacao || 'CLT'} 
+                    onValueChange={(value: any) => setNewJob({...newJob, tipo_contratacao: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -263,29 +217,37 @@ const Jobs = () => {
                   <Input
                     id="salary"
                     placeholder="Ex: R$ 5.000 - R$ 8.000"
-                    value={newJob.salary}
-                    onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
+                    value={newJob.salario || ''}
+                    onChange={(e) => setNewJob({...newJob, salario: e.target.value})}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="manager">Responsável</Label>
-                  <Input
-                    id="manager"
-                    placeholder="Nome do gestor responsável"
-                    value={newJob.manager}
-                    onChange={(e) => setNewJob({...newJob, manager: e.target.value})}
-                  />
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={newJob.status || 'Rascunho'} 
+                    onValueChange={(value: any) => setNewJob({...newJob, status: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Rascunho">Rascunho</SelectItem>
+                      <SelectItem value="Ativa">Ativa</SelectItem>
+                      <SelectItem value="Pausada">Pausada</SelectItem>
+                      <SelectItem value="Encerrada">Encerrada</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="description">Descrição da Vaga</Label>
+                  <Label htmlFor="description">Descrição da Vaga *</Label>
                   <Textarea
                     id="description"
                     placeholder="Descreva as principais responsabilidades e objetivos da posição..."
                     rows={3}
-                    value={newJob.description}
-                    onChange={(e) => setNewJob({...newJob, description: e.target.value})}
+                    value={newJob.descricao}
+                    onChange={(e) => setNewJob({...newJob, descricao: e.target.value})}
                   />
                 </div>
                 
@@ -295,8 +257,8 @@ const Jobs = () => {
                     id="requirements"
                     placeholder="Liste os requisitos técnicos e experiências necessárias..."
                     rows={3}
-                    value={newJob.requirements}
-                    onChange={(e) => setNewJob({...newJob, requirements: e.target.value})}
+                    value={newJob.requisitos || ''}
+                    onChange={(e) => setNewJob({...newJob, requisitos: e.target.value})}
                   />
                 </div>
                 
@@ -306,8 +268,8 @@ const Jobs = () => {
                     id="benefits"
                     placeholder="Descreva os benefícios oferecidos..."
                     rows={2}
-                    value={newJob.benefits}
-                    onChange={(e) => setNewJob({...newJob, benefits: e.target.value})}
+                    value={newJob.beneficios || ''}
+                    onChange={(e) => setNewJob({...newJob, beneficios: e.target.value})}
                   />
                 </div>
               </div>
@@ -316,8 +278,19 @@ const Jobs = () => {
                 <Button variant="outline" onClick={() => setIsNewJobDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateJob} className="bg-primary hover:bg-primary/90">
-                  Criar Vaga
+                <Button 
+                  onClick={handleCreateJob} 
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={createJobMutation.isPending}
+                >
+                  {createJobMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    'Criar Vaga'
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -347,7 +320,7 @@ const Jobs = () => {
               <SelectContent>
                 <SelectItem value="">Todos</SelectItem>
                 {departments.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -377,36 +350,40 @@ const Jobs = () => {
                   {/* Header da vaga */}
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{job.title}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{job.titulo}</h3>
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-1">
                           <Building2 className="h-4 w-4" />
-                          <span>{job.department}</span>
+                          <span>{job.departamentos?.nome || 'Sem departamento'}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <DollarSign className="h-4 w-4" />
-                          <span>{job.salary}</span>
-                        </div>
+                        {job.local && (
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{job.local}</span>
+                          </div>
+                        )}
+                        {job.salario && (
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="h-4 w-4" />
+                            <span>{job.salario}</span>
+                          </div>
+                        )}
                         <div className="flex items-center space-x-1">
                           <Clock className="h-4 w-4" />
-                          <span>{job.type}</span>
+                          <span>{job.tipo_contratacao}</span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(job.status)}>
+                      <Badge className={getStatusColor(job.status || 'Rascunho')}>
                         {job.status}
                       </Badge>
                     </div>
                   </div>
 
                   {/* Descrição */}
-                  <p className="text-gray-700 line-clamp-2">{job.description}</p>
+                  <p className="text-gray-700 line-clamp-2">{job.descricao}</p>
 
                   {/* Métricas */}
                   <div className="flex items-center justify-between">
@@ -414,23 +391,23 @@ const Jobs = () => {
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-blue-600" />
                         <span className="text-sm text-gray-600">
-                          <span className="font-medium text-blue-600">{job.applications}</span> candidatos
+                          <span className="font-medium text-blue-600">{job._count?.candidatos_pipeline || 0}</span> candidatos
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          Criada em {new Date(job.createdDate).toLocaleDateString('pt-BR')}
+                          Criada em {new Date(job.created_at!).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        Responsável: <span className="font-medium">{job.manager}</span>
+                        Responsável: <span className="font-medium">{job.gestor?.nome || 'Não definido'}</span>
                       </div>
                     </div>
 
                     {/* Ações */}
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleShareJob(job.title)}>
+                      <Button variant="outline" size="sm" onClick={() => handleShareJob(job.titulo)}>
                         <Share2 className="h-4 w-4 mr-2" />
                         Compartilhar
                       </Button>
@@ -442,8 +419,18 @@ const Jobs = () => {
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteJob(job.id)}
+                        disabled={deleteJobMutation.isPending}
+                      >
+                        {deleteJobMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -493,7 +480,7 @@ const Jobs = () => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {jobs.reduce((acc, job) => acc + job.applications, 0)}
+                {jobs.reduce((acc, job) => acc + (job._count?.candidatos_pipeline || 0), 0)}
               </div>
               <p className="text-sm text-gray-600">Total Candidatos</p>
             </div>
