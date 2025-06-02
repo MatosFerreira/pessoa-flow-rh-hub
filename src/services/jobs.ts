@@ -7,8 +7,12 @@ export type JobInsert = TablesInsert<'vagas'>;
 export type JobUpdate = TablesUpdate<'vagas'>;
 
 export interface JobWithRelations extends Job {
-  departamentos?: Tables<'departamentos'>;
-  gestor?: Tables<'usuarios'>;
+  departamentos?: {
+    nome: string;
+  };
+  gestor?: {
+    nome: string;
+  };
   _count?: {
     candidatos_pipeline: number;
   };
