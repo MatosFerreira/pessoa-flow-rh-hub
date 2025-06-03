@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ const Settings = () => {
 
   // Configurações da empresa
   const [companySettings, setCompanySettings] = useState({
-    name: user?.companyName || 'Empresa Demo',
+    name: user?.company?.nome || 'Empresa Demo',
     description: 'Empresa de tecnologia focada em soluções inovadoras',
     website: 'https://www.empresa.com',
     phone: '(11) 3000-0000',

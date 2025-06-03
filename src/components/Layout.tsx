@@ -80,12 +80,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Building2 className="h-5 w-5 text-gray-500" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.companyName}
+                {user?.company?.nome || 'Empresa'}
               </p>
               <p className="text-xs text-gray-500">
-                {user?.role === 'admin' ? 'Administrador' :
-                 user?.role === 'hr' ? 'RH' :
-                 user?.role === 'manager' ? 'Gestor' : 'Colaborador'}
+                {user?.profile?.role === 'admin' ? 'Administrador' :
+                 user?.profile?.role === 'hr' ? 'RH' :
+                 user?.profile?.role === 'manager' ? 'Gestor' : 'Colaborador'}
               </p>
             </div>
           </div>
@@ -108,11 +108,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="flex items-center space-x-3">
                 <Avatar className="ring-2 ring-primary/20">
                   <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                    {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {user?.profile?.nome?.split(' ').map(n => n[0]).join('').toUpperCase() || user?.email?.[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{user?.profile?.nome || user?.email}</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
               </div>
