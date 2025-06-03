@@ -12,7 +12,9 @@ import {
   Building2,
   Briefcase,
   FileText,
-  BarChart3
+  BarChart3,
+  Settings,
+  UserCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -31,7 +33,9 @@ const RecruitmentLayout: React.FC<RecruitmentLayoutProps> = ({ children }) => {
     { name: 'Candidatos', href: '/candidatos', icon: Users, description: 'Base de candidatos e currículos' },
     { name: 'Pipeline', href: '/pipeline', icon: GitBranch, description: 'Funil de seleção Kanban' },
     { name: 'Entrevistas', href: '/entrevistas', icon: Calendar, description: 'Agendamentos e histórico' },
+    { name: 'Colaboradores', href: '/colaboradores', icon: UserCheck, description: 'Gestão de colaboradores' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, description: 'Métricas e indicadores' },
+    { name: 'Configurações', href: '/configuracoes', icon: Settings, description: 'Configurações da empresa' },
   ];
 
   return (

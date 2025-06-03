@@ -47,7 +47,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/vaga/:jobId/inscricao" element={<PublicJobApplication />} />
             
-            {/* Módulo Recrutamento - Rotas Protegidas */}
+            {/* Rotas Protegidas com RecruitmentLayout */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <RecruitmentLayout>
@@ -83,8 +83,6 @@ const App = () => (
                 </RecruitmentLayout>
               </ProtectedRoute>
             } />
-            
-            {/* Outras rotas (fora do módulo de recrutamento) */}
             <Route path="/colaboradores" element={
               <ProtectedRoute>
                 <RecruitmentLayout>
