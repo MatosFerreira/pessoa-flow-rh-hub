@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -57,7 +56,7 @@ const Register = () => {
         ...prev,
         name: data.nome,
         email: data.email,
-        role: data.role,
+        role: data.role as 'admin' | 'hr' | 'manager' | 'employee',
         companyName: data.empresas?.nome || ''
       }));
     } catch (error) {
