@@ -1,44 +1,58 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Loader2, ArrowLeft } from 'lucide-react';
+import { Users, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const { error } = await login(email, password);
+      
+      if (error) {
+        setError(error);
+        toast({
+          title: "Erro no login",
+          description: error,
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo à Plataforma Pessoas",
         });
         navigate('/dashboard');
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Verifique suas credenciais e tente novamente",
-          variant: "destructive",
-        });
       }
     } catch (error) {
+      const errorMessage = "Ocorreu um erro inesperado. Tente novamente.";
+      setError(errorMessage);
       toast({
         title: "Erro no login",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -119,6 +133,13 @@ const Login = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700 font-medium">E-mail</Label>
@@ -179,15 +200,6 @@ const Login = () => {
                     Cadastre-se aqui
                   </Link>
                 </p>
-              </div>
-
-              {/* Demo credentials */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-xs text-blue-800 font-medium mb-2">Credenciais de demonstração:</p>
-                <div className="space-y-1">
-                  <p className="text-xs text-blue-700"><strong>E-mail:</strong> admin@demo.com</p>
-                  <p className="text-xs text-blue-700"><strong>Senha:</strong> qualquer senha</p>
-                </div>
               </div>
             </CardContent>
           </Card>

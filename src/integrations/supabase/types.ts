@@ -675,7 +675,9 @@ export type Database = {
           email: string
           empresa_id: string | null
           id: string
+          is_admin: boolean | null
           nome: string
+          role: string | null
           tipo: string | null
           updated_at: string | null
         }
@@ -685,7 +687,9 @@ export type Database = {
           email: string
           empresa_id?: string | null
           id: string
+          is_admin?: boolean | null
           nome: string
+          role?: string | null
           tipo?: string | null
           updated_at?: string | null
         }
@@ -695,7 +699,9 @@ export type Database = {
           email?: string
           empresa_id?: string | null
           id?: string
+          is_admin?: boolean | null
           nome?: string
+          role?: string | null
           tipo?: string | null
           updated_at?: string | null
         }

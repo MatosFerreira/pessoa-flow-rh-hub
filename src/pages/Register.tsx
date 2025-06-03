@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Loader2, ArrowLeft, Check } from 'lucide-react';
+import { Users, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -20,42 +21,64 @@ const Register = () => {
     role: 'admin' as 'admin' | 'hr' | 'manager'
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsLoading(true);
+    setError(null);
+
+    // Validações
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Erro no cadastro",
-        description: "As senhas não coincidem",
-        variant: "destructive",
-      });
+      setError('As senhas não coincidem');
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    if (formData.password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const success = await register(formData);
-      if (success) {
+      const { error } = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        companyName: formData.companyName,
+        role: formData.role
+      });
+      
+      if (error) {
+        setError(error);
         toast({
-          title: "Conta criada com sucesso!",
-          description: "Bem-vindo à Plataforma Pessoas",
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "Erro no cadastro",
-          description: "Verifique os dados e tente novamente",
+          title: "Erro no registro",
+          description: error,
           variant: "destructive",
         });
+      } else {
+        toast({
+          title: "Registro realizado com sucesso!",
+          description: "Verifique seu e-mail para confirmar a conta.",
+        });
+        navigate('/login');
       }
     } catch (error) {
+      const errorMessage = "Ocorreu um erro inesperado. Tente novamente.";
+      setError(errorMessage);
       toast({
-        title: "Erro no cadastro",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        title: "Erro no registro",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -63,12 +86,9 @@ const Register = () => {
     }
   };
 
-  const benefits = [
-    "Setup em menos de 5 minutos",
-    "Suporte especializado incluído",
-    "Dados seguros e protegidos",
-    "Atualizações automáticas"
-  ];
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -87,31 +107,20 @@ const Register = () => {
           
           <div className="space-y-6">
             <h2 className="text-4xl font-bold text-white leading-tight">
-              Comece sua jornada de transformação do RH
+              Comece a transformar o RH da sua empresa hoje
             </h2>
             <p className="text-xl text-white/90 leading-relaxed">
-              Junte-se a centenas de empresas que já otimizaram seus processos de gestão de pessoas.
+              Crie sua conta e descubra como nossa plataforma pode revolucionar 
+              seus processos de recrutamento e gestão de pessoas.
             </p>
-
-            {/* Benefits */}
-            <div className="space-y-4">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-white/90 font-medium">{benefit}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
         
         {/* Illustration */}
         <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-sm">
           <img 
-            src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            alt="Laptop moderno representando tecnologia para RH"
+            src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            alt="Equipe colaborativa trabalhando em gestão de RH"
             className="w-full h-auto rounded-xl"
           />
         </div>
@@ -150,108 +159,95 @@ const Register = () => {
                 Crie sua conta
               </CardTitle>
               <CardDescription className="text-gray-600">
-                Cadastre sua empresa e comece a usar gratuitamente
+                Preencha os dados para começar
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-gray-700 font-medium">Nome completo *</Label>
+                  <Label htmlFor="name" className="text-gray-700 font-medium">Nome completo</Label>
                   <Input
                     id="name"
                     type="text"
                     placeholder="Seu nome completo"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-700 font-medium">E-mail corporativo *</Label>
+                  <Label htmlFor="email" className="text-gray-700 font-medium">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu@empresa.com"
+                    placeholder="seu@email.com"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                     className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                     required
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-gray-700 font-medium">Senha *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Senha segura"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirmar *</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="Confirme a senha"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                      className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
-                      required
-                    />
-                  </div>
-                </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyName" className="text-gray-700 font-medium">Nome da empresa *</Label>
+                  <Label htmlFor="companyName" className="text-gray-700 font-medium">Nome da empresa</Label>
                   <Input
                     id="companyName"
                     type="text"
                     placeholder="Nome da sua empresa"
                     value={formData.companyName}
-                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    onChange={(e) => handleInputChange('companyName', e.target.value)}
                     className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role" className="text-gray-700 font-medium">Seu cargo na empresa</Label>
-                  <Select value={formData.role} onValueChange={(value: 'admin' | 'hr' | 'manager') => setFormData({...formData, role: value})}>
-                    <SelectTrigger className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl">
-                      <SelectValue placeholder="Selecione seu cargo" />
+                  <Label htmlFor="role" className="text-gray-700 font-medium">Seu papel</Label>
+                  <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                    <SelectTrigger className="h-12 border-gray-300 focus:border-primary rounded-xl">
+                      <SelectValue placeholder="Selecione seu papel" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Administrador/CEO</SelectItem>
-                      <SelectItem value="hr">Analista/Gestor de RH</SelectItem>
-                      <SelectItem value="manager">Gerente/Coordenador</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="hr">RH</SelectItem>
+                      <SelectItem value="manager">Gestor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="flex items-start space-x-2">
-                  <input
-                    id="terms"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1"
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-gray-700 font-medium">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                     required
                   />
-                  <label htmlFor="terms" className="text-sm text-gray-600">
-                    Aceito os{' '}
-                    <a href="#" className="text-primary hover:text-primary/80 font-medium">
-                      Termos de Uso
-                    </a>
-                    {' '}e{' '}
-                    <a href="#" className="text-primary hover:text-primary/80 font-medium">
-                      Política de Privacidade
-                    </a>
-                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirmar senha</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                    required
+                  />
                 </div>
 
                 <Button 
@@ -260,7 +256,7 @@ const Register = () => {
                   disabled={isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Criar conta gratuitamente
+                  Criar conta
                 </Button>
               </form>
 
@@ -268,7 +264,7 @@ const Register = () => {
                 <p className="text-sm text-gray-600">
                   Já tem uma conta?{' '}
                   <Link to="/login" className="text-primary hover:text-primary/80 font-medium">
-                    Faça login aqui
+                    Faça login
                   </Link>
                 </p>
               </div>

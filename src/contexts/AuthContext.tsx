@@ -1,21 +1,25 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { Tables } from '@/integrations/supabase/types';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'hr' | 'manager' | 'employee';
-  companyId: string;
-  companyName: string;
+type UserProfile = Tables<'usuarios'>;
+type Company = Tables<'empresas'>;
+
+interface AuthUser extends User {
+  profile?: UserProfile;
+  company?: Company;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
-  logout: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ error: string | null }>;
+  register: (data: RegisterData) => Promise<{ error: string | null }>;
+  logout: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -29,96 +33,137 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Simular verificação de token no localStorage
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Erro ao parse dos dados do usuário:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-      }
+  // Função para buscar perfil do usuário
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('usuarios')
+        .select(`
+          *,
+          empresa:empresas(*)
+        `)
+        .eq('id', userId)
+        .single();
+
+      return profile;
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error);
+      return null;
     }
+  };
+
+  // Configurar listener de autenticação
+  useEffect(() => {
+    // Listener para mudanças de estado de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session);
+        
+        setSession(session);
+        
+        if (session?.user) {
+          // Buscar perfil do usuário quando autenticado
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(session.user.id);
+            
+            setUser({
+              ...session.user,
+              profile: profile,
+              company: profile?.empresa as Company
+            });
+            setIsAuthenticated(true);
+          }, 0);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Verificar sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        console.log('Sessão inicial encontrada:', session);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
-      // Simular autenticação
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Dados mockados para demonstração
-      const mockUser: User = {
-        id: '1',
-        name: 'Admin Sistema',
-        email: email,
-        role: 'admin',
-        companyId: '1',
-        companyName: 'Empresa Demo'
-      };
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Simular token JWT
-      const token = `mock_jwt_token_${Date.now()}`;
-      
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userData', JSON.stringify(mockUser));
-      
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      
-      return true;
+      if (error) {
+        console.error('Erro no login:', error);
+        return { error: error.message };
+      }
+
+      return { error: null };
     } catch (error) {
       console.error('Erro no login:', error);
-      return false;
+      return { error: 'Erro inesperado no login' };
     }
   };
 
-  const register = async (data: RegisterData): Promise<boolean> => {
+  const register = async (data: RegisterData): Promise<{ error: string | null }> => {
     try {
-      // Simular registro
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const redirectUrl = `${window.location.origin}/`;
       
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        name: data.name,
+      const { error } = await supabase.auth.signUp({
         email: data.email,
-        role: data.role || 'admin',
-        companyId: `company_${Date.now()}`,
-        companyName: data.companyName
-      };
+        password: data.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: data.name,
+            companyName: data.companyName,
+            role: data.role || 'admin'
+          }
+        }
+      });
 
-      const token = `mock_jwt_token_${Date.now()}`;
-      
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userData', JSON.stringify(newUser));
-      
-      setUser(newUser);
-      setIsAuthenticated(true);
-      
-      return true;
+      if (error) {
+        console.error('Erro no registro:', error);
+        return { error: error.message };
+      }
+
+      return { error: null };
     } catch (error) {
       console.error('Erro no registro:', error);
-      return false;
+      return { error: 'Erro inesperado no registro' };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session,
+      isAuthenticated, 
+      isLoading,
+      login, 
+      register, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

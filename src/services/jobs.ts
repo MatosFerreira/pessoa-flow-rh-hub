@@ -21,6 +21,18 @@ export interface JobWithRelations extends Job {
 export const jobsService = {
   // Buscar todas as vagas da empresa do usuário
   async getJobs(): Promise<JobWithRelations[]> {
+    // Buscar primeiro o perfil do usuário para obter a empresa
+    const { data: userProfile } = await supabase
+      .from('usuarios')
+      .select('empresa_id')
+      .eq('id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
+
+    if (!userProfile?.empresa_id) {
+      console.log('Usuário não tem empresa associada');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('vagas')
       .select(`
@@ -28,6 +40,7 @@ export const jobsService = {
         departamentos(nome),
         gestor:usuarios!vagas_gestor_id_fkey(nome)
       `)
+      .eq('empresa_id', userProfile.empresa_id)
       .order('created_at', { ascending: false });
 
     if (error) {
