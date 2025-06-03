@@ -7,23 +7,64 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     companyName: '',
-    role: 'admin' as 'admin' | 'hr' | 'manager'
+    role: 'admin' as 'admin' | 'hr' | 'manager' | 'employee'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inviteData, setInviteData] = useState<any>(null);
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Verificar convite se token estiver presente
+  useEffect(() => {
+    if (inviteToken) {
+      checkInvite();
+    }
+  }, [inviteToken]);
+
+  const checkInvite = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('convites_usuarios')
+        .select('*, empresas(nome)')
+        .eq('token', inviteToken)
+        .eq('usado', false)
+        .gt('data_expiracao', new Date().toISOString())
+        .single();
+
+      if (error || !data) {
+        setError('Convite inválido ou expirado');
+        return;
+      }
+
+      setInviteData(data);
+      setFormData(prev => ({
+        ...prev,
+        name: data.nome,
+        email: data.email,
+        role: data.role,
+        companyName: data.empresas?.nome || ''
+      }));
+    } catch (error) {
+      console.error('Erro ao verificar convite:', error);
+      setError('Erro ao verificar convite');
+    }
+  };
 
   // Redirecionar se já estiver autenticado
   useEffect(() => {
@@ -50,13 +91,20 @@ const Register = () => {
       return;
     }
 
+    if (!inviteToken && !formData.companyName) {
+      setError('Nome da empresa é obrigatório');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         companyName: formData.companyName,
-        role: formData.role
+        role: formData.role,
+        inviteToken: inviteToken || undefined
       });
       
       if (error) {
@@ -69,7 +117,7 @@ const Register = () => {
       } else {
         toast({
           title: "Registro realizado com sucesso!",
-          description: "Verifique seu e-mail para confirmar a conta.",
+          description: inviteToken ? "Bem-vindo à equipe!" : "Verifique seu e-mail para confirmar a conta.",
         });
         navigate('/login');
       }
@@ -156,10 +204,10 @@ const Register = () => {
           <Card className="border-0 shadow-xl">
             <CardHeader className="text-center space-y-2">
               <CardTitle className="text-2xl font-bold text-gray-900">
-                Crie sua conta
+                {inviteToken ? 'Aceitar Convite' : 'Crie sua conta'}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                Preencha os dados para começar
+                {inviteToken ? `Você foi convidado para fazer parte de ${inviteData?.empresas?.nome}` : 'Preencha os dados para começar'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -180,6 +228,7 @@ const Register = () => {
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                    disabled={!!inviteToken}
                     required
                   />
                 </div>
@@ -193,36 +242,41 @@ const Register = () => {
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                    disabled={!!inviteToken}
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="companyName" className="text-gray-700 font-medium">Nome da empresa</Label>
-                  <Input
-                    id="companyName"
-                    type="text"
-                    placeholder="Nome da sua empresa"
-                    value={formData.companyName}
-                    onChange={(e) => handleInputChange('companyName', e.target.value)}
-                    className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
-                    required
-                  />
-                </div>
+                {!inviteToken && (
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName" className="text-gray-700 font-medium">Nome da empresa</Label>
+                    <Input
+                      id="companyName"
+                      type="text"
+                      placeholder="Nome da sua empresa"
+                      value={formData.companyName}
+                      onChange={(e) => handleInputChange('companyName', e.target.value)}
+                      className="h-12 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                      required
+                    />
+                  </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-gray-700 font-medium">Seu papel</Label>
-                  <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                    <SelectTrigger className="h-12 border-gray-300 focus:border-primary rounded-xl">
-                      <SelectValue placeholder="Selecione seu papel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="hr">RH</SelectItem>
-                      <SelectItem value="manager">Gestor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!inviteToken && (
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="text-gray-700 font-medium">Seu papel</Label>
+                    <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                      <SelectTrigger className="h-12 border-gray-300 focus:border-primary rounded-xl">
+                        <SelectValue placeholder="Selecione seu papel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="hr">RH</SelectItem>
+                        <SelectItem value="manager">Gestor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-gray-700 font-medium">Senha</Label>
@@ -256,7 +310,7 @@ const Register = () => {
                   disabled={isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Criar conta
+                  {inviteToken ? 'Aceitar Convite' : 'Criar conta'}
                 </Button>
               </form>
 

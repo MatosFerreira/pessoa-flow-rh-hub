@@ -199,6 +199,63 @@ export type Database = {
           },
         ]
       }
+      convites_usuarios: {
+        Row: {
+          created_at: string | null
+          criado_por: string
+          data_expiracao: string
+          email: string
+          empresa_id: string
+          id: string
+          nome: string
+          role: string
+          token: string
+          updated_at: string | null
+          usado: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          criado_por: string
+          data_expiracao?: string
+          email: string
+          empresa_id: string
+          id?: string
+          nome: string
+          role: string
+          token: string
+          updated_at?: string | null
+          usado?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          criado_por?: string
+          data_expiracao?: string
+          email?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          role?: string
+          token?: string
+          updated_at?: string | null
+          usado?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_usuarios_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_usuarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departamentos: {
         Row: {
           ativo: boolean | null
@@ -799,7 +856,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_invite_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

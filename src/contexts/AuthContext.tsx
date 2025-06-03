@@ -27,7 +27,8 @@ interface RegisterData {
   email: string;
   password: string;
   companyName: string;
-  role?: 'admin' | 'hr' | 'manager';
+  role?: 'admin' | 'hr' | 'manager' | 'employee';
+  inviteToken?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,7 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             name: data.name,
             companyName: data.companyName,
-            role: data.role || 'admin'
+            role: data.role || 'admin',
+            inviteToken: data.inviteToken
           }
         }
       });
