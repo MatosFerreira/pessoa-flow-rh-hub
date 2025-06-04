@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
@@ -21,51 +20,71 @@ export interface JobWithRelations extends Job {
 export const jobsService = {
   // Buscar todas as vagas da empresa do usuário
   async getJobs(): Promise<JobWithRelations[]> {
-    // Buscar primeiro o perfil do usuário para obter a empresa
-    const { data: userProfile } = await supabase
-      .from('usuarios')
-      .select('empresa_id')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
+    try {
+      // Buscar primeiro o perfil do usuário para obter a empresa
+      const { data: userProfile, error: userError } = await supabase
+        .from('usuarios')
+        .select('empresa_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
 
-    if (!userProfile?.empresa_id) {
-      console.log('Usuário não tem empresa associada');
+      if (userError) {
+        console.error('Erro ao buscar perfil do usuário:', userError);
+        return [];
+      }
+
+      if (!userProfile?.empresa_id) {
+        console.log('Usuário não tem empresa associada');
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('vagas')
+        .select(`
+          *,
+          departamentos(nome),
+          gestor:usuarios!vagas_gestor_id_fkey(nome)
+        `)
+        .eq('empresa_id', userProfile.empresa_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao buscar vagas:', error);
+        return [];
+      }
+
+      // Para cada vaga, buscar contagem de candidatos
+      const jobsWithCounts = await Promise.all(
+        (data || []).map(async (job) => {
+          try {
+            const { count } = await supabase
+              .from('candidatos_pipeline')
+              .select('*', { count: 'exact', head: true })
+              .eq('vaga_id', job.id);
+
+            return {
+              ...job,
+              _count: {
+                candidatos_pipeline: count || 0
+              }
+            };
+          } catch (error) {
+            console.error('Erro ao buscar contagem de candidatos:', error);
+            return {
+              ...job,
+              _count: {
+                candidatos_pipeline: 0
+              }
+            };
+          }
+        })
+      );
+
+      return jobsWithCounts;
+    } catch (error) {
+      console.error('Erro inesperado ao buscar vagas:', error);
       return [];
     }
-
-    const { data, error } = await supabase
-      .from('vagas')
-      .select(`
-        *,
-        departamentos(nome),
-        gestor:usuarios!vagas_gestor_id_fkey(nome)
-      `)
-      .eq('empresa_id', userProfile.empresa_id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar vagas:', error);
-      throw error;
-    }
-
-    // Para cada vaga, buscar contagem de candidatos
-    const jobsWithCounts = await Promise.all(
-      (data || []).map(async (job) => {
-        const { count } = await supabase
-          .from('candidatos_pipeline')
-          .select('*', { count: 'exact', head: true })
-          .eq('vaga_id', job.id);
-
-        return {
-          ...job,
-          _count: {
-            candidatos_pipeline: count || 0
-          }
-        };
-      })
-    );
-
-    return jobsWithCounts;
   },
 
   // Criar nova vaga

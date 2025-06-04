@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,8 @@ import {
 import { useJobs, useCreateJob, useUpdateJob, useDeleteJob } from '@/hooks/useJobs';
 import { useDepartments } from '@/hooks/useDepartments';
 import { JobInsert } from '@/services/jobs';
+import { VincularEmpresa } from '@/components/VincularEmpresa';
+import { useEmpresa } from '@/hooks/useEmpresa';
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,8 +37,9 @@ const Jobs = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isNewJobDialogOpen, setIsNewJobDialogOpen] = useState(false);
 
-  const { data: jobs = [], isLoading, error } = useJobs();
+  const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useJobs();
   const { data: departments = [] } = useDepartments();
+  const { data: empresa, isLoading: empresaLoading } = useEmpresa();
   const createJobMutation = useCreateJob();
   const updateJobMutation = useUpdateJob();
   const deleteJobMutation = useDeleteJob();
@@ -54,6 +56,32 @@ const Jobs = () => {
     departamento_id: null,
     gestor_id: null,
   });
+
+  if (jobsLoading || empresaLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!empresa) {
+    return <VincularEmpresa />;
+  }
+
+  if (jobs.length === 0 && !jobsLoading && !jobsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <Building2 className="h-12 w-12 text-gray-400" />
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900">Nenhuma empresa associada</h3>
+          <p className="text-sm text-gray-500">
+            Você precisa estar associado a uma empresa para gerenciar vagas.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,15 +138,7 @@ const Jobs = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
+  if (jobsError) {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Erro ao carregar vagas. Tente novamente.</p>
@@ -319,9 +339,9 @@ const Jobs = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todos</SelectItem>
-                {departments.map(dept => (
+                {departments.map(dept => dept?.id ? (
                   <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
-                ))}
+                ) : null)}
               </SelectContent>
             </Select>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
