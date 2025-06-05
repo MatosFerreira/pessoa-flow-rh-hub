@@ -66,6 +66,53 @@ export type Database = {
           },
         ]
       }
+      auth_usuarios: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string
+          empresa_id: string | null
+          id: string
+          nome: string
+          password_hash: string
+          role: string
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email: string
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          password_hash: string
+          role?: string
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          password_hash?: string
+          role?: string
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auth_usuarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidatos: {
         Row: {
           cpf: string | null
@@ -465,6 +512,60 @@ export type Database = {
           },
         ]
       }
+      jobs: {
+        Row: {
+          benefits: string[]
+          close_date: string | null
+          company: string
+          contract_type: string
+          created_at: string | null
+          department: string
+          description: string
+          id: string
+          location: string
+          open_date: string
+          requirements: string[]
+          salary: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          benefits: string[]
+          close_date?: string | null
+          company: string
+          contract_type: string
+          created_at?: string | null
+          department: string
+          description: string
+          id?: string
+          location: string
+          open_date?: string
+          requirements: string[]
+          salary: string
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          benefits?: string[]
+          close_date?: string | null
+          company?: string
+          contract_type?: string
+          created_at?: string | null
+          department?: string
+          description?: string
+          id?: string
+          location?: string
+          open_date?: string
+          requirements?: string[]
+          salary?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pipeline_etapas: {
         Row: {
           ativo: boolean | null
@@ -856,9 +957,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_user: {
+        Args: { input_username: string; input_password: string }
+        Returns: Json
+      }
       generate_invite_token: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_empresa_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      verify_password: {
+        Args: { input_password: string; stored_hash: string }
+        Returns: boolean
       }
     }
     Enums: {

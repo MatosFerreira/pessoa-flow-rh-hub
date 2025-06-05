@@ -4,9 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { SimpleAuthProvider, useSimpleAuth } from "./contexts/SimpleAuthContext";
 import LandingPage from "./pages/LandingPage";
-import Login from "./pages/Login";
+import SimpleLogin from "./pages/SimpleLogin";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
@@ -16,12 +16,12 @@ import Interviews from "./pages/Interviews";
 import Employees from "./pages/Employees";
 import Settings from "./pages/Settings";
 import PublicJobApplication from "./pages/PublicJobApplication";
-import RecruitmentLayout from "./components/RecruitmentLayout";
+import SimpleRecruitmentLayout from "./components/SimpleRecruitmentLayout";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, requiredRoles }: { children: React.ReactNode; requiredRoles?: string[] }) => {
+  const { isAuthenticated, isLoading, hasPermission } = useSimpleAuth();
   
   if (isLoading) {
     return (
@@ -31,7 +31,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  if (requiredRoles && !hasPermission(requiredRoles)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h1>
+          <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return <>{children}</>;
 };
 
 const App = () => (
@@ -39,69 +54,69 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
+      <SimpleAuthProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<SimpleLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/vaga/:jobId/inscricao" element={<PublicJobApplication />} />
             
-            {/* Rotas Protegidas com RecruitmentLayout */}
+            {/* Rotas Protegidas com SimpleRecruitmentLayout */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <RecruitmentLayout>
+                <SimpleRecruitmentLayout>
                   <Dashboard />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/vagas" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin', 'hr', 'manager']}>
+                <SimpleRecruitmentLayout>
                   <Jobs />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/candidatos" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin', 'hr', 'manager']}>
+                <SimpleRecruitmentLayout>
                   <Candidates />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/pipeline" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin', 'hr', 'manager']}>
+                <SimpleRecruitmentLayout>
                   <Pipeline />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/entrevistas" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin', 'hr', 'manager']}>
+                <SimpleRecruitmentLayout>
                   <Interviews />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/colaboradores" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin', 'hr', 'manager']}>
+                <SimpleRecruitmentLayout>
                   <Employees />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             <Route path="/configuracoes" element={
-              <ProtectedRoute>
-                <RecruitmentLayout>
+              <ProtectedRoute requiredRoles={['admin']}>
+                <SimpleRecruitmentLayout>
                   <Settings />
-                </RecruitmentLayout>
+                </SimpleRecruitmentLayout>
               </ProtectedRoute>
             } />
             
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
+      </SimpleAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
