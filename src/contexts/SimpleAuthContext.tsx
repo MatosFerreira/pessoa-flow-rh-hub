@@ -20,6 +20,20 @@ interface AuthContextType {
   hasPermission: (requiredRole: string[]) => boolean;
 }
 
+// Tipo para o retorno da função authenticate_user
+interface AuthResponse {
+  success: boolean;
+  message?: string;
+  user?: {
+    id: string;
+    username: string;
+    nome: string;
+    email: string;
+    role: string;
+    empresa_id?: string;
+  };
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,17 +101,24 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { error: 'Erro no servidor de autenticação' };
       }
 
-      if (!data?.success) {
-        return { error: data?.message || 'Credenciais inválidas' };
+      // Type casting para o tipo esperado
+      const authResponse = data as AuthResponse;
+
+      if (!authResponse?.success) {
+        return { error: authResponse?.message || 'Credenciais inválidas' };
+      }
+
+      if (!authResponse.user) {
+        return { error: 'Dados do usuário não encontrados' };
       }
 
       const userData = {
-        id: data.user.id,
-        username: data.user.username,
-        nome: data.user.nome,
-        email: data.user.email,
-        role: data.user.role as 'admin' | 'manager' | 'hr' | 'employee',
-        empresa_id: data.user.empresa_id
+        id: authResponse.user.id,
+        username: authResponse.user.username,
+        nome: authResponse.user.nome,
+        email: authResponse.user.email,
+        role: authResponse.user.role as 'admin' | 'manager' | 'hr' | 'employee',
+        empresa_id: authResponse.user.empresa_id
       };
 
       setUser(userData);
